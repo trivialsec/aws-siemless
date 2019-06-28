@@ -1,0 +1,32 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: {{ item.region | upper }} SNS Topic for CloudWatch Monitoring
+Resources:
+  "{{ item.sns_topic | upper }}":
+    Type: "AWS::SNS::Topic"
+    Properties:
+      Subscription:
+{% for email in item.subscriptions %}
+        - Endpoint: "{{ email }}"
+          Protocol: "email"
+{% endfor %}
+      TopicName: "{{ item.sns_topic }}"
+  SNSPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref "AWS::AccountId"
+            Action: "sns:Publish"
+            Resource: "*"
+      Topics:
+        - !Ref {{ item.sns_topic | upper }}
+Outputs:
+  "{{ item.sns_topic | upper }}":
+    Description: Arn for "{{ item.sns_topic | upper }}"
+    Export:
+      Name: "{{ item.sns_topic | upper }}"
+    Value: !Ref {{ item.sns_topic | upper }}

@@ -1,0 +1,15 @@
+cat <<EOF
+AWS-SIEMLESS
+EOF
+
+if [[ ! -z "$(ls .env/bin/activate 2>/dev/null)" ]]; then
+  source .env/bin/activate
+fi
+
+git status
+
+if [[ ! -z $(which pylint) ]]; then
+  pylint -E --ignore=venv src/**/*.py src/*.py
+fi
+
+export AWS_DEFAULT_REGION=ap-southeast-2

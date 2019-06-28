@@ -1,0 +1,29 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudWatch Monitoring {{ item.region }} Resource Metrics
+Resources:
+{% for f in item.metric_filters %}
+  "MetricFilter{{ f.Name }}":
+    Type: 'AWS::Logs::MetricFilter'
+    Properties:
+      LogGroupName: {{ f.LogGroupName }}
+      FilterPattern: >-
+        {{ f.FilterPattern }}
+      MetricTransformations:
+        - MetricNamespace: {{ f.Namespace }}
+          MetricName: {{ f.Name }}
+          MetricValue: {{ f.Value }}
+  "Alarm{{ f.Name }}":
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: ConsoleAuthFailure
+      Namespace: CloudTrailMetrics
+      MetricName: {{ f.Name }}
+      Statistic: Sum
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '1'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - Ref: "Topictestalertauthfailure"
+{% endfor %}

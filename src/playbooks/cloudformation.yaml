@@ -1,0 +1,57 @@
+---
+- hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Create a build templates directory if it does not exist
+      file:
+        path: /ansible/build/templates/{{ playbook }}
+        state: directory
+      when: action != 'delete'
+
+    - name: Set facts
+      set_fact:
+        task: '{{ playbook_file | replace(".yaml", "") }}'
+        template:
+          path: "/ansible/build/templates/{{ playbook }}"
+          file: "{{ playbook_file }}"
+
+    - name: Generate CloudFormation
+      template:
+        src: /ansible/templates/{{ playbook }}/{{ playbook_file }}.j2
+        dest: '{{ template.path }}/{{ item.region }}_{{ template.file }}'
+      register: generate_stack
+      when: action != 'delete'
+      loop: '{{ regions }}'
+
+    - name: CloudFormation validate-template
+      command: aws cloudformation validate-template --template-body file://{{ template.path }}/{{ item.region }}_{{ template.file }}
+      args:
+        chdir: /ansible
+      register: validate_stack
+      when: action != 'delete'
+      loop: '{{ regions }}'
+
+    - name: CloudFormation create-stack
+      command: aws cloudformation create-stack --region {{ item.region }} --stack-name {{ stack_name|upper }} --template-body file://{{ template.path }}/{{ item.region }}_{{ template.file }}
+      args:
+        chdir: /ansible
+      register: create_stack
+      when: action == 'create'
+      loop: '{{ regions }}'
+
+    - name: CloudFormation update-stack
+      command: aws cloudformation update-stack --region {{ item.region }} --stack-name {{ stack_name|upper }} --template-body file://{{ template.path }}/{{ item.region }}_{{ template.file }}
+      args:
+        chdir: /ansible
+      register: update_stack
+      when: action == 'update'
+      loop: '{{ regions }}'
+
+    - name: CloudFormation delete-stack
+      command: aws cloudformation delete-stack --region {{ item.region }} --stack-name {{ stack_name|upper }}
+      args:
+        chdir: /ansible
+      register: delete_stack
+      when: action == 'delete'
+      loop: '{{ regions }}'

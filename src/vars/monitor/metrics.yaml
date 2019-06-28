@@ -1,0 +1,110 @@
+---
+stack_name: MONITORING-METRICS-STACK
+regions:
+- region: ap-southeast-2
+
+  metric_filters:
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '[version, account, eni, source, destination, srcport, destport="22",protocol="6", packets, bytes, windowstart, windowend, action="REJECT",flowlogstatus]'
+    Namespace: CloudTrailMetrics
+    Name: RejectedSSHVPC
+    Value: 1
+    AlarmDescription:
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.errorCode = "*UnauthorizedOperation") || ($.errorCode = "AccessDenied*") }'
+    Namespace: CloudTrailMetrics
+    Name: UnauthorizedApiCall
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = ConsoleLogin) && ($.errorMessage = "Failed authentication") }'
+    Namespace: CloudTrailMetrics
+    Name: FailedConsolePassword
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ $.userIdentity.sessionContext.attributes.mfaAuthenticated != "true" }'
+    Namespace: CloudTrailMetrics
+    Name: APIActivityWithoutMFA
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{($.eventName=DeleteGroupPolicy)||($.eventName=DeleteRolePolicy)||($.eventName=DeleteUserPolicy)||($.eventName=PutGroupPolicy)||($.eventName=PutRolePolicy)||($.eventName=PutUserPolicy)||($.eventName=CreatePolicy)||($.eventName=DeletePolicy)||($.eventName=CreatePolicyVersion)||($.eventName=DeletePolicyVersion)||($.eventName=AttachRolePolicy)||($.eventName=DetachRolePolicy)||($.eventName=AttachUserPolicy)||($.eventName=DetachUserPolicy)||($.eventName=AttachGroupPolicy)||($.eventName=DetachGroupPolicy)}'
+    Namespace: CloudTrailMetrics
+    Name: IAMPolicyChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{($.eventName=AddUserToGroup)||($.eventName=ChangePassword)||($.eventName=CreateAccessKey)||($.eventName=CreateUser)||($.eventName=UpdateAccessKey)||($.eventName=UpdateGroup)||($.eventName=UpdateUser)||($.eventName=AttachGroupPolicy)||($.eventName=AttachUserPolicy)||($.eventName=DeleteUserPolicy)||($.eventName=DetachGroupPolicy)||($.eventName=DetachUserPolicy)||($.eventName=PutUserPolicy)}'
+    Namespace: CloudTrailMetrics
+    Name: IAMUserChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{($.eventName=DeactivateMFADevice)||($.eventName=DeleteVirtualMFADevice)||($.eventName=ResyncMFADevice)}'
+    Namespace: CloudTrailMetrics
+    Name: MFATampering
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = CreateCustomerGateway) || ($.eventName = DeleteCustomerGateway) || ($.eventName = AttachInternetGateway) || ($.eventName = CreateInternetGateway) || ($.eventName = DeleteInternetGateway) || ($.eventName = DetachInternetGateway) }'
+    Namespace: CloudTrailMetrics
+    Name: InternetGatewayChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = CreateTrail) || ($.eventName = UpdateTrail) || ($.eventName = DeleteTrail) || ($.eventName = StartLogging) || ($.eventName = StopLogging) }'
+    Namespace: CloudTrailMetrics
+    Name: CloudTrailChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = PutConfigurationRecorder) || ($.eventName = StopConfigurationRecorder) || ($.eventName = DeleteDeliveryChannel) || ($.eventName = PutDeliveryChannel) }'
+    Namespace: CloudTrailMetrics
+    Name: ComplianceChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = CreateVpc) || ($.eventName = DeleteVpc) || ($.eventName = ModifyVpcAttribute) || ($.eventName = AcceptVpcPeeringConnection) || ($.eventName = CreateVpcPeeringConnection) || ($.eventName = DeleteVpcPeeringConnection) || ($.eventName = RejectVpcPeeringConnection) || ($.eventName = AttachClassicLinkVpc) || ($.eventName = DetachClassicLinkVpc) || ($.eventName = DisableVpcClassicLink) || ($.eventName = EnableVpcClassicLink) }'
+    Namespace: CloudTrailMetrics
+    Name: VPCChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = AuthorizeSecurityGroupIngress) || ($.eventName = AuthorizeSecurityGroupEgress) || ($.eventName = RevokeSecurityGroupIngress) || ($.eventName = RevokeSecurityGroupEgress) || ($.eventName = CreateSecurityGroup) || ($.eventName = DeleteSecurityGroup) }'
+    Namespace: CloudTrailMetrics
+    Name: SecurtyGroupChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventSource = s3.amazonaws.com) && (($.eventName = PutBucketAcl) || ($.eventName = PutBucketPolicy) || ($.eventName = PutBucketCors) || ($.eventName = PutBucketLifecycle) || ($.eventName = PutBucketReplication) || ($.eventName = DeleteBucketPolicy) || ($.eventName = DeleteBucketCors) || ($.eventName = DeleteBucketLifecycle) || ($.eventName = DeleteBucketReplication)) }'
+    Namespace: CloudTrailMetrics
+    Name: S3BucketChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventSource = s3.amazonaws.com) && (($.eventName = DeleteBucket) || ($.eventName = CreateBucket)) }'
+    Namespace: CloudTrailMetrics
+    Name: S3BucketCreationDelete
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ (($.eventName = RunInstances) || ($.eventName = RebootInstances) || ($.eventName = StartInstances) || ($.eventName = StopInstances) || ($.eventName = TerminateInstances)) && (($.requestParameters.instanceType = *.32xlarge) || ($.requestParameters.instanceType = *.24xlarge) || ($.requestParameters.instanceType = *.18xlarge) || ($.requestParameters.instanceType = *.16xlarge) || ($.requestParameters.instanceType = *.12xlarge) || ($.requestParameters.instanceType = *.10xlarge) || ($.requestParameters.instanceType = *.9xlarge) || ($.requestParameters.instanceType = *.8xlarge) || ($.requestParameters.instanceType = *.4xlarge)) }'
+    Namespace: CloudTrailMetrics
+    Name: RiskyEC2Instance
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = RunInstances) || ($.eventName = RebootInstances) || ($.eventName = StartInstances) || ($.eventName = StopInstances) || ($.eventName = TerminateInstances) }'
+    Namespace: CloudTrailMetrics
+    Name: RiskyEC2Action
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventName = CreateNetworkAcl) || ($.eventName = CreateNetworkAclEntry) || ($.eventName = DeleteNetworkAcl) || ($.eventName = DeleteNetworkAclEntry) || ($.eventName = ReplaceNetworkAclEntry) || ($.eventName = ReplaceNetworkAclAssociation) }'
+    Namespace: CloudTrailMetrics
+    Name: NACLChange
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventSource = kms.amazonaws.com) && (($.eventName=DisableKey) || ($.eventName=ScheduleKeyDeletion)) }'
+    Namespace: CloudTrailMetrics
+    Name: KMSCMKTampering
+    Value: 1
+  - LogGroupName: CloudTrail/DefaultLogGroup
+    FilterPattern: '{ ($.eventSource = kms.amazonaws.com) && (($.eventName=DisableKey) || ($.eventName=ScheduleKeyDeletion) || ($.eventName=CancelKeyDeletion) || ($.eventName=CreateKey) || ($.eventName=CreateAlias) || ($.eventName=EnableKey) || ($.eventName=PutKeyPolicy) || ($.eventName=ImportKeyMaterial) || ($.eventName=DeleteImportedKeyMaterial)) }'
+    Namespace: CloudTrailMetrics
+    Name: KMSCMKChange
+    Value: 1
+
+# - region: us-east-1
+#   metric_filters:
+#   - LogGroupName: CloudTrail/DefaultLogGroup # Requires CloudTrail to log to CloudWatch logs
+#     FilterPattern: '{ $.eventName = "ConsoleLogin" && $.additionalEventData.MFAUsed = "No" && $.responseElements.ConsoleLogin != "Failure" }' # ConsoleLogin only works in us-east-1
+#     Namespace: CloudTrailMetrics
+#     Name: ConsoleLoginWithoutMFA
+#     Value: 1

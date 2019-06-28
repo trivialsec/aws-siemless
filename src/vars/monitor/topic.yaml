@@ -1,0 +1,11 @@
+---
+stack_name: MONITORING-TOPIC-STACK
+regions:
+- region: us-east-1
+  sns_topic: MonitorTopic
+  subscriptions:
+    - person@domain.com
+- region: ap-southeast-2
+  sns_topic: MonitorTopic
+  subscriptions:
+    - person@domain.com
