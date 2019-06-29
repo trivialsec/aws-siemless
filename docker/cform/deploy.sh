@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
 CLEANUP=''
+DRYRUN=False
 IGNORE=''
+TYPE=''
+PROFILE="${AWS_PROFILE}"
 ACTION='create'
 while [[ $# -gt 0 ]]
 do
@@ -12,8 +15,17 @@ case $key in
     CLEANUP=false
     shift # past argument
     ;;
+    --dry-run)
+    DRYRUN=True
+    shift # past argument
+    ;;
     -p|--aws-profile)
     PROFILE="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -t|--type)
+    TYPE="$2"
     shift # past argument
     shift # past value
     ;;
@@ -40,27 +52,45 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-export AWS_PROFILE=${PROFILE}
-export AWS_ACCESS_KEY_ID=$(aws --profile ${AWS_PROFILE} configure get aws_access_key_id)
-export AWS_SECRET_ACCESS_KEY=$(aws --profile ${AWS_PROFILE} configure get aws_secret_access_key)
+if [ ! -z "${PROFILE}" ]; then
+    export AWS_ACCESS_KEY_ID=$(aws --profile ${PROFILE} configure get aws_access_key_id)
+    export AWS_SECRET_ACCESS_KEY=$(aws --profile ${PROFILE} configure get aws_secret_access_key)
+fi
 
 WORKDIR=$(pwd)
 mkdir -p build
-cd playbooks/${PLAYBOOK}
 RET=0
-find * -prune -type f | while IFS= read -r f; do
-    cd ${WORKDIR}
-    if [[ $RET == 0 ]] && [[ $f != ${IGNORE} ]]; then
-        ansible-playbook \
-            --extra-vars=@vars/${PLAYBOOK}/$f \
-            --extra-vars=playbook_file=$f \
-            --extra-vars=playbook=${PLAYBOOK} \
-            --extra-vars=action=${ACTION} \
-            ${POSITIONAL} \
-            playbooks/${PLAYBOOK}/$f
-        RET=$?
-    fi
-done
+
+if [[ -f "playbooks/${TYPE}/${PLAYBOOK}.yaml" ]]; then
+    ansible-playbook \
+        --extra-vars=@vars/${TYPE}/${PLAYBOOK}.yaml \
+        --extra-vars=playbook=${PLAYBOOK} \
+        --extra-vars=type=${TYPE} \
+        --extra-vars=action=${ACTION} \
+        --extra-vars=dryrun=${DRYRUN} \
+        ${POSITIONAL} \
+        playbooks/${TYPE}/${PLAYBOOK}.yaml
+    RET=$?
+else
+    cd playbooks/${TYPE}/${PLAYBOOK}
+
+    find * -prune -type f | while IFS= read -r f; do
+        cd ${WORKDIR}
+        if [[ $RET == 0 ]] && [[ $f != ${IGNORE} ]]; then
+            ansible-playbook \
+                --extra-vars=@vars/${PLAYBOOK}/$f \
+                --extra-vars=playbook_file=$f \
+                --extra-vars=playbook=${PLAYBOOK} \
+                --extra-vars=type=${TYPE} \
+                --extra-vars=action=${ACTION} \
+                --extra-vars=dryrun=${DRYRUN} \
+                ${POSITIONAL} \
+                playbooks/${PLAYBOOK}/$f
+            RET=$?
+        fi
+    done
+fi
+
 
 if [[ -z "${CLEANUP}" ]]; then
     rm -rf build

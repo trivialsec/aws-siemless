@@ -2,6 +2,48 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: CloudWatch Monitoring {{ item.region }} Resource Metrics
 Resources:
+{% if item.rules is defined %}
+{% for r in item.rules %}
+  "Rule{{ r.Name }}":
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "{{ r.Description }}"
+      EventPattern:
+{% if r.EventPattern.source is defined %}
+        source:
+{% for source in r.EventPattern.source %}
+          - {{ source }}
+{% endfor %}
+{% endif %}
+{% if r.EventPattern.detail is defined %}
+        detail:
+          {{ r.EventPattern.detail | to_nice_yaml | indent(10) }}
+{% endif %}
+{% if r.EventPattern.detailType is defined %}
+        detail-type:
+{% for detailType in r.EventPattern.detailType %}
+          - {{ detailType }}
+{% endfor %}
+{% endif %}
+{% if r.EventPattern.resources is defined %}
+        resources:
+{% for resourceArn in r.EventPattern.resources %}
+          - {{ resourceArn }}
+{% endfor %}
+{% endif %}
+      State: "ENABLED"
+      Targets:
+        - Id: '{{ r.Name }}Alarm'
+{% for a in r.Targets %}
+{% if a.Arn is defined %}
+          Arn: {{ a.Arn }}
+{% else %}
+          Arn: !ImportValue {{ a.Import }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% if item.metric_filters is defined %}
 {% for f in item.metric_filters %}
   "MetricFilter{{ f.Name }}":
     Type: 'AWS::Logs::MetricFilter'
@@ -16,14 +58,21 @@ Resources:
   "Alarm{{ f.Name }}":
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
-      AlarmDescription: ConsoleAuthFailure
-      Namespace: CloudTrailMetrics
+      AlarmDescription: {{ f.Alarm.Description }}
+      Namespace: {{ f.Namespace }}
       MetricName: {{ f.Name }}
-      Statistic: Sum
-      Period: '300'
-      EvaluationPeriods: '1'
-      Threshold: '1'
-      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Statistic: {{ f.Alarm.Statistic }}
+      Period: {{ f.Alarm.Period }}
+      EvaluationPeriods: {{ f.Alarm.EvaluationPeriods }}
+      Threshold: {{ f.Alarm.Threshold }}
+      ComparisonOperator: {{ f.Alarm.ComparisonOperator }}
       AlarmActions:
-        - Ref: "Topictestalertauthfailure"
+{% for a in f.Alarm.Actions %}
+{% if a.Arn is defined %}
+        - {{ a.Arn }}
+{% else %}
+        - !ImportValue {{ a.Import }}
+{% endif %}
 {% endfor %}
+{% endfor %}
+{% endif %}

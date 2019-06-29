@@ -5,7 +5,7 @@
   tasks:
     - name: Create a build templates directory if it does not exist
       file:
-        path: /ansible/build/templates/{{ playbook }}
+        path: /ansible/build/templates/{{ type }}/{{ playbook }}
         state: directory
       when: action != 'delete'
 
@@ -13,19 +13,29 @@
       set_fact:
         task: '{{ playbook_file | replace(".yaml", "") }}'
         template:
-          path: "/ansible/build/templates/{{ playbook }}"
+          base: "/ansible/build"
+          path: "templates/{{ type }}/{{ playbook }}"
           file: "{{ playbook_file }}"
+      when: playbook_file is defined
+
+    - name: Set facts
+      set_fact:
+        template:
+          base: "/ansible/build"
+          path: "templates/{{ type }}"
+          file: "{{ playbook }}.yaml"
+      when: playbook_file is not defined
 
     - name: Generate CloudFormation
       template:
-        src: /ansible/templates/{{ playbook }}/{{ playbook_file }}.j2
-        dest: '{{ template.path }}/{{ item.region }}_{{ template.file }}'
+        src: /ansible/{{ template.path }}/{{ template.file }}.j2
+        dest: '{{ template.base }}/{{ template.path }}/{{ item.region }}_{{ template.file }}'
       register: generate_stack
       when: action != 'delete'
       loop: '{{ regions }}'
 
     - name: CloudFormation validate-template
-      command: aws cloudformation validate-template --template-body file://{{ template.path }}/{{ item.region }}_{{ template.file }}
+      command: aws cloudformation validate-template --template-body file://{{ template.base }}/{{ template.path }}/{{ item.region }}_{{ template.file }}
       args:
         chdir: /ansible
       register: validate_stack
@@ -33,19 +43,19 @@
       loop: '{{ regions }}'
 
     - name: CloudFormation create-stack
-      command: aws cloudformation create-stack --region {{ item.region }} --stack-name {{ stack_name|upper }} --template-body file://{{ template.path }}/{{ item.region }}_{{ template.file }}
+      command: aws cloudformation create-stack --region {{ item.region }} --stack-name {{ stack_name|upper }} --template-body file://{{ template.base }}/{{ template.path }}/{{ item.region }}_{{ template.file }}
       args:
         chdir: /ansible
       register: create_stack
-      when: action == 'create'
+      when: action == 'create' and dryrun == 'False'
       loop: '{{ regions }}'
 
     - name: CloudFormation update-stack
-      command: aws cloudformation update-stack --region {{ item.region }} --stack-name {{ stack_name|upper }} --template-body file://{{ template.path }}/{{ item.region }}_{{ template.file }}
+      command: aws cloudformation update-stack --region {{ item.region }} --stack-name {{ stack_name|upper }} --template-body file://{{ template.base }}/{{ template.path }}/{{ item.region }}_{{ template.file }}
       args:
         chdir: /ansible
       register: update_stack
-      when: action == 'update'
+      when: action == 'update' and dryrun == 'False'
       loop: '{{ regions }}'
 
     - name: CloudFormation delete-stack
@@ -53,5 +63,5 @@
       args:
         chdir: /ansible
       register: delete_stack
-      when: action == 'delete'
+      when: action == 'delete' and dryrun == 'False'
       loop: '{{ regions }}'

@@ -2,7 +2,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: {{ item.region | upper }} SNS Topic for CloudWatch Monitoring
 Resources:
-  "{{ item.sns_topic | upper }}":
+  "{{ item.sns_topic }}":
     Type: "AWS::SNS::Topic"
     Properties:
       Subscription:
@@ -23,10 +23,10 @@ Resources:
             Action: "sns:Publish"
             Resource: "*"
       Topics:
-        - !Ref {{ item.sns_topic | upper }}
+        - !Ref {{ item.sns_topic }}
 Outputs:
-  "{{ item.sns_topic | upper }}":
-    Description: Arn for "{{ item.sns_topic | upper }}"
+  "{{ item.sns_topic }}":
+    Description: Arn for "{{ item.sns_topic }}"
     Export:
-      Name: "{{ item.sns_topic | upper }}"
-    Value: !Ref {{ item.sns_topic | upper }}
+      Name: "{{ item.sns_topic }}"
+    Value: !Ref {{ item.sns_topic }}
