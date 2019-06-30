@@ -108,48 +108,6 @@ regions:
           Actions:
             - Import: MonitorTopic
       - LogGroupName: CloudTrail/DefaultLogGroup
-        FilterPattern: '{($.eventName=DeleteGroupPolicy)||($.eventName=DeleteRolePolicy)||($.eventName=DeleteUserPolicy)||($.eventName=PutGroupPolicy)||($.eventName=PutRolePolicy)||($.eventName=PutUserPolicy)||($.eventName=CreatePolicy)||($.eventName=DeletePolicy)||($.eventName=CreatePolicyVersion)||($.eventName=DeletePolicyVersion)||($.eventName=AttachRolePolicy)||($.eventName=DetachRolePolicy)||($.eventName=AttachUserPolicy)||($.eventName=DetachUserPolicy)||($.eventName=AttachGroupPolicy)||($.eventName=DetachGroupPolicy)}'
-        Namespace: CloudTrailMetrics
-        Name: IAMPolicyChange
-        Value: 1
-        Alarm:
-          Description: IAM Policy Changes - privilege escalation
-          Statistic: Sum
-          Period: '300'
-          EvaluationPeriods: '1'
-          Threshold: '1'
-          ComparisonOperator: GreaterThanOrEqualToThreshold
-          Actions:
-            - Import: MonitorTopic
-      - LogGroupName: CloudTrail/DefaultLogGroup
-        FilterPattern: '{($.eventName=AddUserToGroup)||($.eventName=ChangePassword)||($.eventName=CreateAccessKey)||($.eventName=CreateUser)||($.eventName=UpdateAccessKey)||($.eventName=UpdateGroup)||($.eventName=UpdateUser)||($.eventName=AttachGroupPolicy)||($.eventName=AttachUserPolicy)||($.eventName=DeleteUserPolicy)||($.eventName=DetachGroupPolicy)||($.eventName=DetachUserPolicy)||($.eventName=PutUserPolicy)}'
-        Namespace: CloudTrailMetrics
-        Name: IAMUserChange
-        Value: 1
-        Alarm:
-          Description: IAM User Changes - privilege escalation
-          Statistic: Sum
-          Period: '300'
-          EvaluationPeriods: '1'
-          Threshold: '1'
-          ComparisonOperator: GreaterThanOrEqualToThreshold
-          Actions:
-            - Import: MonitorTopic
-      - LogGroupName: CloudTrail/DefaultLogGroup
-        FilterPattern: '{($.eventName=DeactivateMFADevice)||($.eventName=DeleteVirtualMFADevice)||($.eventName=ResyncMFADevice)}'
-        Namespace: CloudTrailMetrics
-        Name: MFATampering
-        Value: 1
-        Alarm:
-          Description: IAM MFA Changes - ATO
-          Statistic: Sum
-          Period: '300'
-          EvaluationPeriods: '1'
-          Threshold: '1'
-          ComparisonOperator: GreaterThanOrEqualToThreshold
-          Actions:
-            - Import: MonitorTopic
-      - LogGroupName: CloudTrail/DefaultLogGroup
         FilterPattern: '{ ($.eventName = CreateCustomerGateway) || ($.eventName = DeleteCustomerGateway) || ($.eventName = AttachInternetGateway) || ($.eventName = CreateInternetGateway) || ($.eventName = DeleteInternetGateway) || ($.eventName = DetachInternetGateway) }'
         Namespace: CloudTrailMetrics
         Name: InternetGatewayChange
@@ -317,13 +275,25 @@ regions:
           ComparisonOperator: GreaterThanOrEqualToThreshold
           Actions:
             - Import: MonitorTopic
+  - region: us-east-1
+    rules:
+      - Name: PersonalHealthDashboardEvents
+        Description: triggers on changes in the status of AWS Health checks
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.health
+          detailType:
+            - "AWS Health Event"
+    metric_filters:
       - LogGroupName: CloudTrail/DefaultLogGroup
-        FilterPattern: '{ $.eventName = "ConsoleLogin" && $.additionalEventData.MFAUsed = "No" && $.responseElements.ConsoleLogin != "Failure" }'
+        FilterPattern: '{ ($.eventName = CreateTrail) || ($.eventName = UpdateTrail) || ($.eventName = DeleteTrail) || ($.eventName = StartLogging) || ($.eventName = StopLogging) }'
         Namespace: CloudTrailMetrics
-        Name: ConsoleLoginWithoutMFA
+        Name: CloudTrailChange
         Value: 1
         Alarm:
-          Description: Console Login without MFA - Security Controls violation
+          Description: CloudTrail Changes - bypass audit controls, detection prevention
           Statistic: Sum
           Period: '300'
           EvaluationPeriods: '1'
@@ -352,6 +322,90 @@ regions:
         Value: 1
         Alarm:
           Description: Root Login - Least privileged violation, ATO
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.errorCode = "*UnauthorizedOperation") || ($.errorCode = "AccessDenied*") }'
+        Namespace: CloudTrailMetrics
+        Name: UnauthorizedApiCall
+        Value: 1
+        Alarm:
+          Description: Unauthorized Api Calls	- Lateral Movement, ATO, Credential Stuffing
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '10'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ $.userIdentity.sessionContext.attributes.mfaAuthenticated != "true" }'
+        Namespace: CloudTrailMetrics
+        Name: APIActivityWithoutMFA
+        Value: 1
+        Alarm:
+          Description: API Activity without MFA - Security Controls violation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{($.eventName=DeleteGroupPolicy)||($.eventName=DeleteRolePolicy)||($.eventName=DeleteUserPolicy)||($.eventName=PutGroupPolicy)||($.eventName=PutRolePolicy)||($.eventName=PutUserPolicy)||($.eventName=CreatePolicy)||($.eventName=DeletePolicy)||($.eventName=CreatePolicyVersion)||($.eventName=DeletePolicyVersion)||($.eventName=AttachRolePolicy)||($.eventName=DetachRolePolicy)||($.eventName=AttachUserPolicy)||($.eventName=DetachUserPolicy)||($.eventName=AttachGroupPolicy)||($.eventName=DetachGroupPolicy)}'
+        Namespace: CloudTrailMetrics
+        Name: IAMPolicyChange
+        Value: 1
+        Alarm:
+          Description: IAM Policy Changes - privilege escalation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{($.eventName=AddUserToGroup)||($.eventName=ChangePassword)||($.eventName=CreateAccessKey)||($.eventName=CreateUser)||($.eventName=UpdateAccessKey)||($.eventName=UpdateGroup)||($.eventName=UpdateUser)||($.eventName=AttachGroupPolicy)||($.eventName=AttachUserPolicy)||($.eventName=DeleteUserPolicy)||($.eventName=DetachGroupPolicy)||($.eventName=DetachUserPolicy)||($.eventName=PutUserPolicy)}'
+        Namespace: CloudTrailMetrics
+        Name: IAMUserChange
+        Value: 1
+        Alarm:
+          Description: IAM User Changes - privilege escalation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{($.eventName=DeactivateMFADevice)||($.eventName=DeleteVirtualMFADevice)||($.eventName=ResyncMFADevice)}'
+        Namespace: CloudTrailMetrics
+        Name: MFATampering
+        Value: 1
+        Alarm:
+          Description: IAM MFA Changes - ATO
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ $.eventName = "ConsoleLogin" && $.additionalEventData.MFAUsed = "No" && $.responseElements.ConsoleLogin != "Failure" }'
+        Namespace: CloudTrailMetrics
+        Name: ConsoleLoginWithoutMFA
+        Value: 1
+        Alarm:
+          Description: Console Login without MFA - Security Controls violation
           Statistic: Sum
           Period: '300'
           EvaluationPeriods: '1'

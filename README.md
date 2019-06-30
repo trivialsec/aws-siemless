@@ -3,13 +3,13 @@
 ### Build base image
 
 ```bash
-docker build -t cform docker/base
+docker build -t cform-base docker/base
 ```
 
 ### Build cform image whenever deploy.sh changes
 
 ```bash
-docker build -t cform docker/base
+docker build -t cform docker/cform
 ```
 
 ## Execute a playbook
