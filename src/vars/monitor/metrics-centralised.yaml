@@ -1,0 +1,402 @@
+
+---
+stack_name: MONITORING-METRICS-STACK
+regions:
+  - region: ap-southeast-2
+    rules:
+      - Name: TrustedAdvisorEvents
+        Description: triggers on changes in the status of Trusted Advisor checks
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.trustedadvisor
+      - Name: PersonalHealthDashboardEvents
+        Description: triggers on changes in the status of AWS Health checks
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.health
+          detailType:
+            - "AWS Health Event"
+      - Name: AWSConfigEvents
+        Description: detects changes to AWS Config Rule compliance status
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.config
+          detailType:
+            - "Config Rules Compliance Change"
+      - Name: GuardDutyFindings
+        Description: triggers on Amazon GuardDuty findings. The Event Rule can be used to trigger notifications or remediative actions using AWS Lambda
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.guardduty
+          detailType:
+            - "GuardDuty Finding"
+      - Name: SecurityHubFindingsImported
+        Description: triggers on AWS Security Hub findings. The Event Rule can be used to trigger notifications or remediative actions using AWS Lambda
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.securityhub
+          detailType:
+            - "Security Hub Findings - Imported"
+      - Name: KMSCMKRotationEvents
+        Description: "triggers on AWS KMS Customer Master Key (CMK) rotation events. When you enable annual rotation of a CMK's key material, AWS KMS creates new key material for the CMK each year which can be tracked for assurance purposes"
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.kms
+          detailType:
+            - "KMS CMK Rotation"
+      - Name: KMSCMKImportedMaterialExpirationEvents
+        Description: triggers on AWS KMS Customer Master Key (CMK) imported material expiration events. When you import key material into a CMK, you can optionally specify a time at which the key material expires. When the key material expires, AWS KMS deletes the key material rendering data unreadable if not handled correctly
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.kms
+          detailType:
+            - "KMS Imported Key Material"
+    metric_filters:
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ $.eventName = "ConsoleLogin" && $.additionalEventData.MFAUsed = "No" && $.responseElements.ConsoleLogin != "Failure" }'
+        Namespace: CloudTrailMetrics
+        Name: ConsoleLoginWithoutMFA
+        Value: 1
+        Alarm:
+          Description: Console Login without MFA - Security Controls violation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{($.eventName=DeactivateMFADevice)||($.eventName=DeleteVirtualMFADevice)||($.eventName=ResyncMFADevice)}'
+        Namespace: CloudTrailMetrics
+        Name: MFATampering
+        Value: 1
+        Alarm:
+          Description: IAM MFA Changes - ATO
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{($.eventName=AddUserToGroup)||($.eventName=ChangePassword)||($.eventName=CreateAccessKey)||($.eventName=CreateUser)||($.eventName=UpdateAccessKey)||($.eventName=UpdateGroup)||($.eventName=UpdateUser)||($.eventName=AttachGroupPolicy)||($.eventName=AttachUserPolicy)||($.eventName=DeleteUserPolicy)||($.eventName=DetachGroupPolicy)||($.eventName=DetachUserPolicy)||($.eventName=PutUserPolicy)}'
+        Namespace: CloudTrailMetrics
+        Name: IAMUserChange
+        Value: 1
+        Alarm:
+          Description: IAM User Changes - privilege escalation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{($.eventName=DeleteGroupPolicy)||($.eventName=DeleteRolePolicy)||($.eventName=DeleteUserPolicy)||($.eventName=PutGroupPolicy)||($.eventName=PutRolePolicy)||($.eventName=PutUserPolicy)||($.eventName=CreatePolicy)||($.eventName=DeletePolicy)||($.eventName=CreatePolicyVersion)||($.eventName=DeletePolicyVersion)||($.eventName=AttachRolePolicy)||($.eventName=DetachRolePolicy)||($.eventName=AttachUserPolicy)||($.eventName=DetachUserPolicy)||($.eventName=AttachGroupPolicy)||($.eventName=DetachGroupPolicy)}'
+        Namespace: CloudTrailMetrics
+        Name: IAMPolicyChange
+        Value: 1
+        Alarm:
+          Description: IAM Policy Changes - privilege escalation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ $.userIdentity.sessionContext.attributes.mfaAuthenticated != "true" }'
+        Namespace: CloudTrailMetrics
+        Name: APIActivityWithoutMFA
+        Value: 1
+        Alarm:
+          Description: API Activity without MFA - Security Controls violation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.userIdentity.type = "Root") && ($.userIdentity.invokedBy NOT EXISTS) && ($.eventType != "AwsServiceEvent") }'
+        Namespace: CloudTrailMetrics
+        Name: RootLogin
+        Value: 1
+        Alarm:
+          Description: Root Login - Least privileged violation, ATO
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = ConsoleLogin) && ($.errorMessage = "Failed authentication") }'
+        Namespace: CloudTrailMetrics
+        Name: FailedConsolePassword
+        Value: 1
+        Alarm:
+          Description: Failed Console (password) Logins (no lockout policy possible) - ATO, Credential Stuffing
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '10'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '[version, account, eni, source, destination, srcport, destport="22",protocol="6", packets, bytes, windowstart, windowend, action="REJECT",flowlogstatus]'
+        Namespace: CloudTrailMetrics
+        Name: RejectedSSHVPC
+        Value: 1
+        Alarm:
+          Description: Credential stuffing - Rejected SSH connections in VPC more than LF_SSHD setting
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '5'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.errorCode = "*UnauthorizedOperation") || ($.errorCode = "AccessDenied*") }'
+        Namespace: CloudTrailMetrics
+        Name: UnauthorizedApiCall
+        Value: 1
+        Alarm:
+          Description: Unauthorized Api Calls	- Lateral Movement, ATO, Credential Stuffing
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '10'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ $.userIdentity.sessionContext.attributes.mfaAuthenticated != "true" }'
+        Namespace: CloudTrailMetrics
+        Name: APIActivityWithoutMFA
+        Value: 1
+        Alarm:
+          Description: API Activity without MFA - Security Controls violation
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = CreateCustomerGateway) || ($.eventName = DeleteCustomerGateway) || ($.eventName = AttachInternetGateway) || ($.eventName = CreateInternetGateway) || ($.eventName = DeleteInternetGateway) || ($.eventName = DetachInternetGateway) }'
+        Namespace: CloudTrailMetrics
+        Name: InternetGatewayChange
+        Value: 1
+        Alarm:
+          Description: Internet Gateway Changes - Enable C2 connectivity, Data Exfil
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = CreateTrail) || ($.eventName = UpdateTrail) || ($.eventName = DeleteTrail) || ($.eventName = StartLogging) || ($.eventName = StopLogging) }'
+        Namespace: CloudTrailMetrics
+        Name: CloudTrailChange
+        Value: 1
+        Alarm:
+          Description: CloudTrail Changes - bypass audit controls, detection prevention
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = PutConfigurationRecorder) || ($.eventName = StopConfigurationRecorder) || ($.eventName = DeleteDeliveryChannel) || ($.eventName = PutDeliveryChannel) }'
+        Namespace: CloudTrailMetrics
+        Name: ComplianceChange
+        Value: 1
+        Alarm:
+          Description: AWS Config Changes - detection prevention
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = CreateVpc) || ($.eventName = DeleteVpc) || ($.eventName = ModifyVpcAttribute) || ($.eventName = AcceptVpcPeeringConnection) || ($.eventName = CreateVpcPeeringConnection) || ($.eventName = DeleteVpcPeeringConnection) || ($.eventName = RejectVpcPeeringConnection) || ($.eventName = AttachClassicLinkVpc) || ($.eventName = DetachClassicLinkVpc) || ($.eventName = DisableVpcClassicLink) || ($.eventName = EnableVpcClassicLink) }'
+        Namespace: CloudTrailMetrics
+        Name: VPCChange
+        Value: 1
+        Alarm:
+          Description: VPC Changed - Service Availability, Data exfil
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = AuthorizeSecurityGroupIngress) || ($.eventName = AuthorizeSecurityGroupEgress) || ($.eventName = RevokeSecurityGroupIngress) || ($.eventName = RevokeSecurityGroupEgress) || ($.eventName = CreateSecurityGroup) || ($.eventName = DeleteSecurityGroup) }'
+        Namespace: CloudTrailMetrics
+        Name: SecurtyGroupChange
+        Value: 1
+        Alarm:
+          Description: Security Group Changes - Security Controls violation, Enable C2 connectivity, Data Exfil
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventSource = s3.amazonaws.com) && (($.eventName = PutBucketAcl) || ($.eventName = PutBucketPolicy) || ($.eventName = PutBucketCors) || ($.eventName = PutBucketLifecycle) || ($.eventName = PutBucketReplication) || ($.eventName = DeleteBucketPolicy) || ($.eventName = DeleteBucketCors) || ($.eventName = DeleteBucketLifecycle) || ($.eventName = DeleteBucketReplication)) }'
+        Namespace: CloudTrailMetrics
+        Name: S3BucketChange
+        Value: 1
+        Alarm:
+          Description: S3 Bucket Changes - Data Exfil
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventSource = s3.amazonaws.com) && (($.eventName = DeleteBucket) || ($.eventName = CreateBucket)) }'
+        Namespace: CloudTrailMetrics
+        Name: S3BucketCreationDelete
+        Value: 1
+        Alarm:
+          Description: S3 Bucket Creation/Deletion - special interest
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ (($.eventName = RunInstances) || ($.eventName = RebootInstances) || ($.eventName = StartInstances) || ($.eventName = StopInstances) || ($.eventName = TerminateInstances)) && (($.requestParameters.instanceType = *.32xlarge) || ($.requestParameters.instanceType = *.24xlarge) || ($.requestParameters.instanceType = *.18xlarge) || ($.requestParameters.instanceType = *.16xlarge) || ($.requestParameters.instanceType = *.12xlarge) || ($.requestParameters.instanceType = *.10xlarge) || ($.requestParameters.instanceType = *.9xlarge) || ($.requestParameters.instanceType = *.8xlarge) || ($.requestParameters.instanceType = *.4xlarge)) }'
+        Namespace: CloudTrailMetrics
+        Name: RiskyEC2Instance
+        Value: 1
+        Alarm:
+          Description: Expensive EC2 instance types or risky types lacking security controls - Security Controls violation, Excessive Costs
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = RunInstances) || ($.eventName = RebootInstances) || ($.eventName = StartInstances) || ($.eventName = StopInstances) || ($.eventName = TerminateInstances) }'
+        Namespace: CloudTrailMetrics
+        Name: RiskyEC2Action
+        Value: 1
+        Alarm:
+          Description: EC2 Instance Changes - Service Availability
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = CreateNetworkAcl) || ($.eventName = CreateNetworkAclEntry) || ($.eventName = DeleteNetworkAcl) || ($.eventName = DeleteNetworkAclEntry) || ($.eventName = ReplaceNetworkAclEntry) || ($.eventName = ReplaceNetworkAclAssociation) }'
+        Namespace: CloudTrailMetrics
+        Name: NACLChange
+        Value: 1
+        Alarm:
+          Description: Network ACL Changes - Least privileged violation, Enable C2 connectivity, Data Exfil
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventSource = kms.amazonaws.com) && (($.eventName=DisableKey) || ($.eventName=ScheduleKeyDeletion)) }'
+        Namespace: CloudTrailMetrics
+        Name: KMSCMKTampering
+        Value: 1
+        Alarm:
+          Description: KMS CMKs Disabled or Deleted - Data Availability
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventSource = kms.amazonaws.com) && (($.eventName=DisableKey) || ($.eventName=ScheduleKeyDeletion) || ($.eventName=CancelKeyDeletion) || ($.eventName=CreateKey) || ($.eventName=CreateAlias) || ($.eventName=EnableKey) || ($.eventName=PutKeyPolicy) || ($.eventName=ImportKeyMaterial) || ($.eventName=DeleteImportedKeyMaterial)) }'
+        Namespace: CloudTrailMetrics
+        Name: KMSCMKChange
+        Value: 1
+        Alarm:
+          Description: KMS Customer Master Key (CMK) Changes - Least privileged violation, Data exfil
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
+  - region: us-east-1
+    rules:
+      - Name: PersonalHealthDashboardEvents
+        Description: triggers on changes in the status of AWS Health checks
+        Targets:
+          - Import: MonitorTopic
+        EventPattern:
+          source:
+            - aws.health
+          detailType:
+            - "AWS Health Event"
+    metric_filters:
+      - LogGroupName: CloudTrail/DefaultLogGroup
+        FilterPattern: '{ ($.eventName = CreateTrail) || ($.eventName = UpdateTrail) || ($.eventName = DeleteTrail) || ($.eventName = StartLogging) || ($.eventName = StopLogging) }'
+        Namespace: CloudTrailMetrics
+        Name: CloudTrailChange
+        Value: 1
+        Alarm:
+          Description: CloudTrail Changes - bypass audit controls, detection prevention
+          Statistic: Sum
+          Period: '300'
+          EvaluationPeriods: '1'
+          Threshold: '1'
+          ComparisonOperator: GreaterThanOrEqualToThreshold
+          Actions:
+            - Import: MonitorTopic
