@@ -54,7 +54,7 @@ Resources:
       MetricTransformations:
         - MetricNamespace: {{ f.Namespace }}
           MetricName: {{ f.Name }}
-          MetricValue: {{ f.Value }}
+          MetricValue: '{{ f.Value }}'
   "Alarm{{ f.Name }}":
     Type: 'AWS::CloudWatch::Alarm'
     Properties:

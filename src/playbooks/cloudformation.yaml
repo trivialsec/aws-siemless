@@ -34,6 +34,14 @@
       when: action != 'delete'
       loop: '{{ regions }}'
 
+    - name: CloudFormation lint
+      command: cfn-lint -t {{ template.base }}/{{ template.path }}/{{ item.region }}_{{ template.file }} -r {{ item.region }} -I
+      args:
+        chdir: /ansible
+      register: lint_stack
+      when: action != 'delete'
+      loop: '{{ regions }}'
+
     - name: CloudFormation validate-template
       command: aws cloudformation validate-template --template-body file://{{ template.base }}/{{ template.path }}/{{ item.region }}_{{ template.file }}
       args:

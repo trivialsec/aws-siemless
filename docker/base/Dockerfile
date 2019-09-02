@@ -2,7 +2,7 @@ FROM python
 
 RUN apt update -y && \
     apt install groff less -y && \
-    pip install -U ansible boto3 botocore awscli  && \
+    pip install -U ansible boto3 botocore awscli cfn-lint  && \
     useradd -Ums /bin/bash -d /ansible ansible && \
     chown -R ansible:ansible /ansible
 
